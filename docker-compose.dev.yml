@@ -1,0 +1,47 @@
+version: "3.7"
+services: 
+  bookmarkdata:
+    image: postgres:12-alpine
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: test
+      POSTGRES_USER: test
+      POSTGRES_DB: bookmarks 
+    ports: 
+      - "5432:5432"
+  apiserver:
+    depends_on: 
+      - bookmarkdata
+    restart: on-failure
+    build:
+      context: ./server
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./server:/usr/src/app  
+      - /usr/src/app/node_modules
+    environment:
+      - NODE_ENV=development
+    ports: 
+      - "4000:4000"
+  client:
+    stdin_open: true
+    build: 
+      context: ./client
+      dockerfile: Dockerfile.dev
+    environment:
+      - NODE_ENV=development
+    volumes: 
+      - ./client:/usr/src/app
+      - /usr/src/app/node_modules
+    ports: 
+      - "3000:3000"
+  nginx:
+    restart: always
+    depends_on:
+      - client
+      - apiserver
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./nginx
+    ports:
+      - "3100:80"
